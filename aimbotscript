@@ -140,7 +140,10 @@ RunService.RenderStepped:Connect(function()
 
         if currentTarget and currentTarget.Character and currentTarget.Character:FindFirstChild("Head") then
             local targetPos = currentTarget.Character.Head.Position
-            Camera.CFrame = CFrame.new(Camera.CFrame.Position, targetPos)
+            local camPos = Camera.CFrame.Position
+            local lookVector = (targetPos - camPos).Unit
+            local newCFrame = CFrame.new(camPos, camPos + lookVector)
+            Camera.CFrame = Camera.CFrame:Lerp(newCFrame, 0.1)
 
             if autoClickEnabled then
                 autoClick()
