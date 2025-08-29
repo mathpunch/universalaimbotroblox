@@ -9,32 +9,59 @@ local espEnabled = false
 local currentTarget = nil
 local highlights = {}
 
--- Create GUI
+-- Create Modern UI
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "CombatUI"
 screenGui.ResetOnSpawn = false
 screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
+local uiFrame = Instance.new("Frame")
+uiFrame.Size = UDim2.new(0, 180, 0, 160)
+uiFrame.Position = UDim2.new(0, 20, 0.5, -80)
+uiFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+uiFrame.BorderSizePixel = 0
+uiFrame.BackgroundTransparency = 0.2
+uiFrame.AnchorPoint = Vector2.new(0, 0.5)
+uiFrame.Parent = screenGui
+
+local uiCorner = Instance.new("UICorner")
+uiCorner.CornerRadius = UDim.new(0, 12)
+uiCorner.Parent = uiFrame
+
+local uiShadow = Instance.new("ImageLabel")
+uiShadow.Size = UDim2.new(1, 20, 1, 20)
+uiShadow.Position = UDim2.new(0, -10, 0, -10)
+uiShadow.BackgroundTransparency = 1
+uiShadow.Image = "rbxassetid://1316045217"
+uiShadow.ImageTransparency = 0.6
+uiShadow.ScaleType = Enum.ScaleType.Slice
+uiShadow.SliceCenter = Rect.new(10, 10, 118, 118)
+uiShadow.Parent = uiFrame
+
 local function createButton(name, position, defaultText)
     local button = Instance.new("TextButton")
     button.Name = name
-    button.Size = UDim2.new(0, 160, 0, 40)
+    button.Size = UDim2.new(1, -20, 0, 40)
     button.Position = position
     button.Text = defaultText
-    button.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    button.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
     button.TextColor3 = Color3.new(1, 1, 1)
     button.Font = Enum.Font.GothamBold
     button.TextSize = 18
     button.BorderSizePixel = 0
-    button.AutoButtonColor = true
-    button.Parent = screenGui
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 8)
+    corner.Parent = button
+
+    button.Parent = uiFrame
     return button
 end
 
 -- Create Buttons
-local lockButton = createButton("LockButton", UDim2.new(0, 20, 0, 20), "Lock-On: OFF")
-local clickButton = createButton("ClickButton", UDim2.new(0, 20, 0, 70), "Auto Click: OFF")
-local espButton = createButton("ESPButton", UDim2.new(0, 20, 0, 120), "ESP: OFF")
+local lockButton = createButton("LockButton", UDim2.new(0, 10, 0, 10), "Lock-On: OFF")
+local clickButton = createButton("ClickButton", UDim2.new(0, 10, 0, 60), "Auto Click: OFF")
+local espButton = createButton("ESPButton", UDim2.new(0, 10, 0, 110), "ESP: OFF")
 
 -- Button Logic
 lockButton.MouseButton1Click:Connect(function()
@@ -143,7 +170,7 @@ RunService.RenderStepped:Connect(function()
             local camPos = Camera.CFrame.Position
             local lookVector = (targetPos - camPos).Unit
             local newCFrame = CFrame.new(camPos, camPos + lookVector)
-            Camera.CFrame = Camera.CFrame:Lerp(newCFrame, 0.1)
+            Camera.CFrame = newCFrame -- direct tracking
 
             if autoClickEnabled then
                 autoClick()
