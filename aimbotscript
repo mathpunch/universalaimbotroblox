@@ -3,6 +3,9 @@ local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local UserInputService = game:GetService("UserInputService")
 
+-- Check if the user is on mobile
+local isMobile = UserInputService.TouchEnabled or (UserInputService.GamepadEnabled and not UserInputService.KeyboardEnabled)
+
 -- Create ScreenGui
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "CombatUI"
@@ -12,7 +15,7 @@ screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
 -- UI Container (Glassmorphism panel)
 local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 200, 0, 200)
+mainFrame.Size = isMobile and UDim2.new(0, 300, 0, 400) or UDim2.new(0, 200, 0, 200)  -- Larger size for mobile
 mainFrame.Position = UDim2.new(0, 20, 0, 20)
 mainFrame.BackgroundTransparency = 0.2
 mainFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
@@ -29,7 +32,7 @@ stroke.Thickness = 2
 stroke.Color = Color3.fromRGB(70, 70, 255)
 stroke.Transparency = 0.3
 
--- UI Blur (Performance consideration for mobile)
+-- UI Blur
 local blurEffect = Instance.new("BlurEffect")
 blurEffect.Size = 10
 blurEffect.Parent = game:GetService("Lighting")
@@ -41,60 +44,44 @@ layout.FillDirection = Enum.FillDirection.Vertical
 layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 layout.VerticalAlignment = Enum.VerticalAlignment.Top
 
--- Mobile/PC Input Handling for Dragging
+-- Dragging Logic for Mobile and PC
 local dragging, dragInput, dragStart, startPos
 
--- Dragging UI Element (Touch and Mouse Support)
-local function startDrag(input)
-    dragging = true
-    dragStart = input.Position
-    startPos = mainFrame.Position
-end
-
-local function updateDrag(input)
-    if dragging then
-        local delta = input.Position - dragStart
-        mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-    end
-end
-
-local function stopDrag()
-    dragging = false
-end
-
 mainFrame.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        startDrag(input)
+    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        startPos = mainFrame.Position
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
     end
 end)
 
 mainFrame.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseMovement then
         dragInput = input
     end
 end)
 
 UserInputService.InputChanged:Connect(function(input)
-    if input == dragInput then
-        updateDrag(input)
+    if input == dragInput and dragging then
+        local delta = input.Position - dragStart
+        mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
     end
 end)
 
-UserInputService.InputEnded:Connect(function(input)
-    if input == dragInput then
-        stopDrag()
-    end
-end)
-
--- Create a modern button with touch support
+-- Create a modern button (adjusted for mobile)
 local function createModernButton(name, defaultText, callback)
     local button = Instance.new("TextButton")
     button.Name = name
-    button.Size = UDim2.new(1, -20, 0, 40)
+    button.Size = isMobile and UDim2.new(0, 260, 0, 60) or UDim2.new(1, -20, 0, 40)  -- Larger button on mobile
     button.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
     button.TextColor3 = Color3.new(1, 1, 1)
     button.Font = Enum.Font.GothamBold
-    button.TextSize = 16
+    button.TextSize = isMobile and 18 or 16  -- Larger text size for mobile
     button.Text = defaultText
     button.BorderSizePixel = 0
     button.AutoButtonColor = false
@@ -104,30 +91,26 @@ local function createModernButton(name, defaultText, callback)
     local btnCorner = Instance.new("UICorner", button)
     btnCorner.CornerRadius = UDim.new(0, 8)
 
-    -- Shadow (optional, can be removed for performance on mobile)
+    -- Shadow
     local shadow = Instance.new("UIStroke", button)
     shadow.Thickness = 1.5
     shadow.Color = Color3.fromRGB(0, 0, 0)
     shadow.Transparency = 0.5
 
-    -- Hover effect (PC) and Tap effect (Mobile)
-    local function tweenColor(toColor)
-        TweenService:Create(button, TweenInfo.new(0.25), {BackgroundColor3 = toColor}):Play()
+    -- Hover Animation (only for PC)
+    if not isMobile then
+        local function tweenColor(toColor)
+            TweenService:Create(button, TweenInfo.new(0.25), {BackgroundColor3 = toColor}):Play()
+        end
+
+        button.MouseEnter:Connect(function()
+            tweenColor(Color3.fromRGB(50, 50, 50))
+        end)
+
+        button.MouseLeave:Connect(function()
+            tweenColor(Color3.fromRGB(30, 30, 30))
+        end)
     end
-
-    -- Mouse hover (for PC)
-    button.MouseEnter:Connect(function()
-        tweenColor(Color3.fromRGB(50, 50, 50))
-    end)
-
-    button.MouseLeave:Connect(function()
-        tweenColor(Color3.fromRGB(30, 30, 30))
-    end)
-
-    -- Touch event (for mobile)
-    button.TouchTap:Connect(function()
-        tweenColor(Color3.fromRGB(50, 50, 50))
-    end)
 
     -- Click Logic
     button.MouseButton1Click:Connect(callback)
@@ -160,10 +143,3 @@ local espButton = createModernButton("ESPButton", "🧿 ESP: OFF", function()
         highlights = {}
     end
 end)
-
--- Mobile/PC UI Scaling (optional)
-local isMobile = UserInputService.TouchEnabled
-if isMobile then
-    -- Adjust UI size for mobile screens if needed
-    mainFrame.Size = UDim2.new(0, 150, 0, 150)
-end
